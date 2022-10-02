@@ -1,4 +1,8 @@
+import { useState, useEffect, useContext } from 'react';
+import { AuthContext } from '../../contexts/auth';
 import './new.css';
+
+import firebase from '../../services/firebaseConnection';
 
 import Header from '../../components/Header';
 import Title from '../../components/Title';
@@ -7,10 +11,75 @@ import { FiPlusCircle } from 'react-icons/fi';
 
 export default function New(){
 
+    const [ loadCustomers, setLoadCustomers ] = useState(true);
+    const [ customers, setCustomers ] = useState([]);
+    const [ customerSelected, setCustomerSelected ] = useState(0);
+
+    const [assunto, setAssunto] = useState('Suporte')
+    const [status, setStatus] = useState('Aberto');
+    const [complemento, setComplemento] = useState('');
+
+    const { user } = useContext(AuthContext);
+
+    useEffect( () => {
+        async function loadCustomers(){
+            await firebase.firestore().collection('customers')
+            .get()
+            .then((snapshot)=>{
+                let lista = [];
+
+                snapshot.forEach((doc) => {
+                    lista.push({
+                        id: doc.id,
+                        nomeFantasia: doc.data().nomeFantasia
+                    })
+                })
+
+                if(lista.length === 0){
+                    console.log('nenhuma empresa encontrada');
+                    setCustomers([ {id:'1', nomeFantasia: 'FREELA'} ]);
+                    setLoadCustomers(false);
+                    return;
+                }
+
+                setCustomers(lista);
+                setLoadCustomers(false);
+
+            })
+            .catch((error) => {
+                console.log('deu erro!', error);
+                setLoadCustomers(false);
+                setCustomers([ {id:'1', nomeFantasia: ''} ]);
+
+            })
+        }
+
+        loadCustomers();
+
+    }, []);
+
     function handleRegister(e){
         e.preventDefault();
 
         alert('TESTE');
+    }
+
+    //chama quando troca o assunto
+    function handleChangeSelect(e){
+        setAssunto(e.target.value);
+        console.log(e.target.value);
+    }
+
+    //chama quando troca o status
+    function handleOptionChange(e){
+        setStatus(e.target.value);
+        console.log(e.target.value);
+    }
+
+    function handleChangeCustomers(e){
+        // console.log('index selecionada', e.target.value);
+        // console.log('cliente selecionado', customers[e.target.value]);
+        setCustomerSelected(e.target.value);
     }
 
     return(
@@ -26,12 +95,26 @@ export default function New(){
 
                     <form className='form-profile' onSubmit={handleRegister}>
                         <label>Cliente</label>
-                        <select>
-                            <option key={1} value={1}>Sujeito Programador</option>
-                        </select>
+
+                        {loadCustomers ? (
+                        <input type="text" disabled={true} value="Carregando clientes..." />
+
+                        ) : (
+
+                            <select value={customerSelected} onChange={handleChangeCustomers}>
+                                {customers.map((item, index) => {
+                                    return(
+                                        <option key={item.id} value={index}>
+                                            {item.nomeFantasia}
+                                        </option>
+                                    )
+                                })}
+                            </select>
+
+                        )}
 
                         <label>Assunto</label>
-                        <select>
+                        <select value={assunto} onChange={handleChangeSelect}>
                             <option value="Suporte">Suporte</option>
                             <option value="Visita Tecnica">Visita Tecnica</option>
                             <option value="Financeiro">Financeiro</option>
@@ -43,13 +126,17 @@ export default function New(){
                             type="radio"
                             name='radio'
                             value="Aberto" 
+                            onChange={handleOptionChange}
+                            checked={ status === 'Aberto' }
                             />
                             <span>Em Aberto</span>
 
                             <input
                             type="radio"
                             name='radio'
-                            value="Progesso" 
+                            value="Progresso" 
+                            onChange={handleOptionChange}
+                            checked={ status === 'Progresso' }
                             />
                             <span>Progesso</span>
 
@@ -57,6 +144,8 @@ export default function New(){
                             type="radio"
                             name='radio'
                             value="Atendido" 
+                            onChange={handleOptionChange}
+                            checked={ status === 'Atendido' }
                             />
                             <span>Atendido</span>
                         </div>
@@ -65,6 +154,8 @@ export default function New(){
                         <textarea
                             type="text"
                             placeholder='"Descreva seu problema (opcional).'
+                            value={complemento}
+                            onChange={ (e) => setComplemento(e.target.value) }
                         />
 
                         <button type="submit">Registrar</button>
