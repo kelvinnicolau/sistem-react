@@ -1,6 +1,7 @@
 import { useState, useEffect, useContext } from 'react';
 import { AuthContext } from '../../contexts/auth';
 import './new.css';
+import { toast } from 'react-toastify';
 
 import firebase from '../../services/firebaseConnection';
 
@@ -58,10 +59,28 @@ export default function New(){
 
     }, []);
 
-    function handleRegister(e){
+    async function handleRegister(e){
         e.preventDefault();
 
-        alert('TESTE');
+        await firebase.firestore().collection('chamados')
+        .add({
+            created: new Date(),
+            cliente: customers[customerSelected].nomeFantasia,
+            clienteId: customers[customerSelected].id,
+            assunto: assunto,
+            status: status,
+            complemento: complemento,
+            userId: user.uid
+        })
+        .then(() => {
+            toast.success('Chamado criado com sucesso!');
+            setComplemento('');
+            setCustomerSelected(0);
+        })
+        .catch((err) => {
+            toast.error('Ops erro ao registrar, tente mais tarde.')
+            console.log(err);
+        })
     }
 
     //chama quando troca o assunto
